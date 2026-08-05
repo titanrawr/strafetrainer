@@ -13,6 +13,7 @@ This plugin is supposed to be a replacement for the current strafetrainer typica
 1. Put the `.sp` file into the folder mentioned in step 2 (or just use curl `-O https://raw.githubusercontent.com/2x74/strafetrainer/main/scripting/strafetrainer.sp` in the `scripting` folder)
 1. `cd` into your scripting folder (often at `~/[CSS SERVER FOLDER NAME HERE]/cstrike/addons/sourcemod/scripting`)
 2. Type `./spcomp strafetrainer.sp -o ../plugins/strafetrainer.smx`
+
 3. Go into your server console and type `sm plugins load strafetrainer`
 4. Done!
 
