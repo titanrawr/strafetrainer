@@ -47,18 +47,21 @@ enum
     TCOLOR_MAGENTA,
     TCOLOR_PURPLE,
     TCOLOR_PINK,
+    TCOLOR_BLACK,
     TCOLOR_RAINBOW,
     TCOLOR_COUNT
 };
 
 bool  g_bEnabled[MAXPLAYERS + 1];
 bool  g_bStrict[MAXPLAYERS + 1];
+bool  g_bTrendMode[MAXPLAYERS + 1];
 int   g_iSpeedMode[MAXPLAYERS + 1];
 int   g_iPosition[MAXPLAYERS + 1];
 int   g_iPctPos[MAXPLAYERS + 1];
 int   g_iColourMode[MAXPLAYERS + 1];
 
 float g_flDisplayValue[MAXPLAYERS + 1];
+float g_flPrevDisplayValue[MAXPLAYERS + 1];
 bool  g_bHasLastYaw[MAXPLAYERS + 1];
 float g_flLastYaw[MAXPLAYERS + 1];
 
@@ -68,6 +71,7 @@ Handle g_hCookieSpeed;
 Handle g_hCookiePosition;
 Handle g_hCookiePctPos;
 Handle g_hCookieColour;
+Handle g_hCookieTrend;
 
 ConVar g_cvAirAccelerate;
 ConVar g_cvMaxSpeed;
@@ -79,9 +83,9 @@ public Plugin myinfo =
 {
     name = "Strafe Trainer",
     author = "Luna",
-    description = "Real-time strafe sync trainer HUD for bhop",
+    description = "Real-time strafe sync trainer HUD for bhop/surf",
     version = PL_VERSION,
-    url = "https://angelgirl.cloud"
+    url = ""
 };
 
 public void OnPluginStart()
@@ -92,10 +96,11 @@ public void OnPluginStart()
     g_hCookiePosition = RegClientCookie("st_position", "Strafe trainer HUD position",    CookieAccess_Protected);
     g_hCookiePctPos   = RegClientCookie("st_pctpos",   "Strafe trainer % text position", CookieAccess_Protected);
     g_hCookieColour    = RegClientCookie("st_colour",    "Strafe trainer colour mode",      CookieAccess_Protected);
+    g_hCookieTrend     = RegClientCookie("st_trend",      "Strafe trainer trend overlay",    CookieAccess_Protected);
 
     RegConsoleCmd("sm_strafetrainer", Command_Toggle, "Toggle the strafe trainer HUD on/off");
     RegConsoleCmd("sm_strafetrainersettings", Command_Settings, "Open strafe trainer settings menu");
-    RegConsoleCmd("sm_sts", Command_Settings, "Open strafe trainer settings menu");
+    RegConsoleCmd("sm_sthud", Command_Settings, "Open strafe trainer settings menu");
 
     g_cvAirAccelerate = FindConVar("sv_airaccelerate");
     g_cvMaxSpeed = FindConVar("sv_maxspeed");
@@ -144,8 +149,10 @@ public void OnClientPutInServer(int client)
     g_iPosition[client] = POS_TOP;
     g_iPctPos[client] = PCTPOS_ABOVE;
     g_iColourMode[client] = TCOLOR_DEFAULT;
+    g_bTrendMode[client] = false;
 
     g_flDisplayValue[client] = GAUGE_PERFECT;
+    g_flPrevDisplayValue[client] = GAUGE_PERFECT;
     g_bHasLastYaw[client] = false;
 
     if (AreClientCookiesCached(client))
@@ -175,6 +182,9 @@ public void OnClientCookiesCached(int client)
 
     GetClientCookie(client, g_hCookieColour, buf, sizeof(buf));
     g_iColourMode[client] = (buf[0] == '\0') ? TCOLOR_DEFAULT : StringToInt(buf);
+
+    GetClientCookie(client, g_hCookieTrend, buf, sizeof(buf));
+    g_bTrendMode[client] = (buf[0] == '\0') ? false : (StringToInt(buf) != 0);
 
     LogMessage("[ST DEBUG] OnClientCookiesCached fired for client %d — loaded position=%d enabled=%d strict=%d speed=%d pctpos=%d", client, g_iPosition[client], g_bEnabled[client], g_bStrict[client], g_iSpeedMode[client], g_iPctPos[client]);
 }
@@ -240,6 +250,9 @@ void ShowSettingsMenu(int client)
     Format(line, sizeof(line), "Strafe%% Position: %s", g_iPctPos[client] == PCTPOS_BELOW ? "Below" : "Above");
     menu.AddItem("4", line);
 
+    Format(line, sizeof(line), "Avg Gain%%: %s", g_bTrendMode[client] ? "On" : "Off");
+    menu.AddItem("5", line);
+
     char colourLabel[16];
     switch (g_iColourMode[client])
     {
@@ -250,11 +263,12 @@ void ShowSettingsMenu(int client)
         case TCOLOR_MAGENTA: strcopy(colourLabel, sizeof(colourLabel), "Magenta");
         case TCOLOR_PURPLE:  strcopy(colourLabel, sizeof(colourLabel), "Purple");
         case TCOLOR_PINK:    strcopy(colourLabel, sizeof(colourLabel), "Pink");
+        case TCOLOR_BLACK:   strcopy(colourLabel, sizeof(colourLabel), "Black");
         case TCOLOR_RAINBOW: strcopy(colourLabel, sizeof(colourLabel), "Rainbow");
         default:              strcopy(colourLabel, sizeof(colourLabel), "Default");
     }
     Format(line, sizeof(line), "Trainer Colour: %s", colourLabel);
-    menu.AddItem("5", line);
+    menu.AddItem("6", line);
 
     menu.ExitButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
@@ -297,6 +311,11 @@ public int MenuHandler_Settings(Menu menu, MenuAction action, int client, int pa
                 SaveIntCookie(client, g_hCookiePctPos, g_iPctPos[client]);
             }
             case 5:
+            {
+                g_bTrendMode[client] = !g_bTrendMode[client];
+                SaveBoolCookie(client, g_hCookieTrend, g_bTrendMode[client]);
+            }
+            case 6:
             {
                 g_iColourMode[client] = (g_iColourMode[client] + 1) % TCOLOR_COUNT;
                 SaveIntCookie(client, g_hCookieColour, g_iColourMode[client]);
@@ -388,6 +407,13 @@ public Action Timer_Redraw(Handle timer)
 
         if (!g_bEnabled[client] || !IsPlayerAlive(client))
         {
+            continue;
+        }
+
+        bool airborne = !(GetEntityFlags(client) & FL_ONGROUND);
+        if (!airborne)
+        {
+            ClearSyncHud(client, g_hHudSync);
             continue;
         }
 
@@ -490,6 +516,7 @@ void GetTrainerColour(int client, float value, int &r, int &g, int &b)
         case TCOLOR_MAGENTA: { r = 255; g = 0;   b = 255; }
         case TCOLOR_PURPLE:  { r = 128; g = 0;   b = 255; }
         case TCOLOR_PINK:    { r = 255; g = 0;   b = 128; }
+        case TCOLOR_BLACK:   { r = 15;  g = 15;  b = 15;  }
         case TCOLOR_RAINBOW:
         {
             float degPerSec = 60.0;
@@ -499,8 +526,13 @@ void GetTrainerColour(int client, float value, int &r, int &g, int &b)
         }
         default:
         {
-            GetGaugeColour(value, g_bStrict[client], r, g, b);
+            GetTieredColour(value, r, g, b);
         }
+    }
+
+    if (g_bTrendMode[client])
+    {
+        GetTrendColour(client, value, r, g, b);
     }
 }
 
@@ -529,6 +561,70 @@ void HSVtoRGB(float h, float s, float v, int &r, int &g, int &b)
     b = RoundToNearest(bf * 255.0);
 }
 
+void GetTieredColour(float value, int &r, int &g, int &b)
+{
+    float dist = FloatAbs(value - GAUGE_PERFECT);
+    float maxDist = (value < GAUGE_PERFECT) ? (GAUGE_PERFECT - GAUGE_MIN) : (GAUGE_MAX - GAUGE_PERFECT);
+    float t = Clamp(dist / maxDist, 0.0, 1.0);
+
+    int cR[5] = {255, 0,   0,   255, 255};
+    int cG[5] = {255, 255, 255, 165, 0  };
+    int cB[5] = {255, 255, 0,   0,   0  };
+    float stops[5] = {0.0, 0.15, 0.35, 0.65, 1.0};
+
+    int idx = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        if (t >= stops[i] && t <= stops[i + 1])
+        {
+            idx = i;
+            break;
+        }
+    }
+
+    float segT = (t - stops[idx]) / (stops[idx + 1] - stops[idx]);
+    r = RoundToNearest(float(cR[idx]) + float(cR[idx + 1] - cR[idx]) * segT);
+    g = RoundToNearest(float(cG[idx]) + float(cG[idx + 1] - cG[idx]) * segT);
+    b = RoundToNearest(float(cB[idx]) + float(cB[idx + 1] - cB[idx]) * segT);
+}
+
+void GetTrendColour(int client, float value, int &r, int &g, int &b)
+{
+    float prev = g_flPrevDisplayValue[client];
+
+    float prevDist = FloatAbs(prev - GAUGE_PERFECT);
+    float curDist = FloatAbs(value - GAUGE_PERFECT);
+
+    float delta = prevDist - curDist;
+
+    g_flPrevDisplayValue[client] = value;
+
+    const float DEADZONE = 0.15;
+    const float MAX_DELTA = 4.0;
+
+    if (FloatAbs(delta) < DEADZONE)
+    {
+        r = 255; g = 255; b = 255;
+        return;
+    }
+
+    float t = Clamp(FloatAbs(delta) / MAX_DELTA, 0.0, 1.0);
+    t = Pow(t, 0.5);
+
+    if (delta > 0.0)
+    {
+        r = RoundToNearest(255.0 + (0.0 - 255.0) * t);
+        g = 255;
+        b = RoundToNearest(255.0 + (60.0 - 255.0) * t);
+    }
+    else
+    {
+        r = 255;
+        g = RoundToNearest(255.0 + (0.0 - 255.0) * t);
+        b = RoundToNearest(255.0 + (60.0 - 255.0) * t);
+    }
+}
+
 void GetGaugeColour(float value, bool strict, int &r, int &g, int &b)
 {
     bool isLow = value < GAUGE_PERFECT;
@@ -545,19 +641,22 @@ void GetGaugeColour(float value, bool strict, int &r, int &g, int &b)
         t = (value - GAUGE_PERFECT) / highRange;
     }
 
-    float band = strict ? 0.5 : 1.0;
+    // strict = harsher: reaches full saturated colour at half the distance to the extreme
+    // non-strict = softer: needs the true 0 or 200 endpoint to reach full saturation
+    float band = strict ? 0.2 : 0.4;
     t = Clamp(t / band, 0.0, 1.0);
+    t = Pow(t, 0.25);
 
     int fromR = 255, fromG = 255, fromB = 255;
     int toR, toG, toB;
 
     if (isLow)
     {
-        toR = 40; toG = 120; toB = 255;
+        toR = 40; toG = 120; toB = 255; // blue, closer to value = 0
     }
     else
     {
-        toR = 255; toG = 40; toB = 40;
+        toR = 255; toG = 40; toB = 40; // red, closer to value = 200
     }
 
     r = RoundToNearest(float(fromR) + (float(toR) - float(fromR)) * t);
