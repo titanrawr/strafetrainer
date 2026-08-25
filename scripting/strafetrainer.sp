@@ -355,7 +355,6 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     bool airborne = !(GetEntityFlags(client) & FL_ONGROUND);
     bool strafing = ((buttons & IN_MOVELEFT) != 0) != ((buttons & IN_MOVERIGHT) != 0) ||
     ((buttons & IN_FORWARD) != 0) != ((buttons & IN_BACK) != 0);
-
     if (!g_bHasLastYaw[client])
     {
         g_flLastYaw[client] = yaw;
@@ -381,12 +380,12 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     float maxspeed = g_cvMaxSpeed.FloatValue;
     float wishspeed = (maxspeed < AIR_SPEED_CAP) ? maxspeed : AIR_SPEED_CAP;
 
-    float idealAngleDeg = ArcTangent(wishspeed / speed) * (180.0 / 3.14159265);
+    float idealAngleDeg = airborne ? ArcTangent(wishspeed / speed) * (180.0 / 3.14159265) : 1.20;
 
     if (idealAngleDeg < 0.01)
         return Plugin_Continue;
 
-    float idealAngleDeg = airborne ? ArcTangent(wishspeed / speed) * (180.0 / 3.14159265) : 1.20; //is ideal prestrafe yaw different with different friction? 
+    float actualAngleDeg = FloatAbs(deltaYaw);
 
     float rawRatio = (actualAngleDeg / idealAngleDeg) * 100.0;
     rawRatio = Clamp(rawRatio, GAUGE_MIN, GAUGE_MAX);
@@ -418,9 +417,10 @@ public Action Timer_Redraw(Handle timer)
             ClearSyncHud(client, g_hHudSync);
             continue;
         }
+*/
 
         DrawHud(client);
-    } */
+    }
 
     return Plugin_Continue;
 }
