@@ -124,6 +124,13 @@ public void OnPluginStart()
     }
 }
 
+public void OnMapEnd(){
+    if (g_hHudSync != INVALID_HANDLE)
+        delete g_hHudSync;
+    if (g_hRedrawTimer != INVALID_HANDLE)
+        delete g_hRedrawTimer;
+} //don't know why but this seems to be needed on versions of sourcemod where IsValidHandle does not exist. 
+
 public void OnMapStart()
 {
     LogMessage("[ST DEBUG] OnMapStart fired");
