@@ -128,12 +128,12 @@ public void OnMapStart()
 {
     LogMessage("[ST DEBUG] OnMapStart fired");
 
-    if (IsValidHandle(g_hHudSync))
+    if (g_hHudSync != INVALID_HANDLE) //IsValidHandle deprecated?
         delete g_hHudSync;
     g_hHudSync = CreateHudSynchronizer();
     LogMessage("[ST DEBUG] g_hHudSync handle = %d", g_hHudSync);
 
-    if (IsValidHandle(g_hRedrawTimer))
+    if (g_hRedrawTimer != INVALID_HANDLE)
         delete g_hRedrawTimer;
     g_hRedrawTimer = CreateTimer(HUD_REDRAW_INTERVAL, Timer_Redraw, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     LogMessage("[ST DEBUG] g_hRedrawTimer recreated on map start");
@@ -353,7 +353,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
         dt = 0.015;
 
     bool airborne = !(GetEntityFlags(client) & FL_ONGROUND);
-    bool strafing = ((buttons & IN_MOVELEFT) != 0) != ((buttons & IN_MOVERIGHT) != 0);
+    bool strafing = ((buttons & IN_MOVELEFT) != 0) != ((buttons & IN_MOVERIGHT) != 0) ||
+    ((buttons & IN_FORWARD) != 0) != ((buttons & IN_BACK) != 0);
 
     if (!g_bHasLastYaw[client])
     {
@@ -365,7 +366,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     float deltaYaw = NormalizeAngle(yaw - g_flLastYaw[client]);
     g_flLastYaw[client] = yaw;
 
-    if (!airborne || !strafing)
+    if (!strafing)
     {
         return Plugin_Continue;
     }
@@ -385,7 +386,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     if (idealAngleDeg < 0.01)
         return Plugin_Continue;
 
-    float actualAngleDeg = FloatAbs(deltaYaw);
+    float idealAngleDeg = airborne ? ArcTangent(wishspeed / speed) * (180.0 / 3.14159265) : 1.20; //is ideal prestrafe yaw different with different friction? 
 
     float rawRatio = (actualAngleDeg / idealAngleDeg) * 100.0;
     rawRatio = Clamp(rawRatio, GAUGE_MIN, GAUGE_MAX);
@@ -410,6 +411,7 @@ public Action Timer_Redraw(Handle timer)
             continue;
         }
 
+/*
         bool airborne = !(GetEntityFlags(client) & FL_ONGROUND);
         if (!airborne)
         {
@@ -418,7 +420,7 @@ public Action Timer_Redraw(Handle timer)
         }
 
         DrawHud(client);
-    }
+    } */
 
     return Plugin_Continue;
 }
