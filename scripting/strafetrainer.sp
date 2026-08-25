@@ -380,7 +380,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     float maxspeed = g_cvMaxSpeed.FloatValue;
     float wishspeed = (maxspeed < AIR_SPEED_CAP) ? maxspeed : AIR_SPEED_CAP;
 
-    float idealAngleDeg = airborne ? ArcTangent(wishspeed / speed) * (180.0 / 3.14159265) : 1.20;
+    float idealAngleDeg = airborne ? ArcTangent(wishspeed / speed) * (180.0 / 3.14159265) : 1.188;
 
     if (idealAngleDeg < 0.01)
         return Plugin_Continue;
