@@ -6,7 +6,7 @@ This plugin is supposed to be a replacement for the current strafetrainer typica
 2. While prestrafing, strafe trainer will guide you towards ideal prestrafing angle.
 3. Compatible with your servers chat styling on shavit timer.
 
-The smx in for this fork was compiled using the most recent version of sourcemod, so for servers running an older version of sourcemod you must compile the plugin yourself.
+The smx for this fork was compiled using the most recent version of sourcemod, so for servers running an older version of sourcemod you must compile the plugin yourself.
 
 # How is it different?
 1. All code is built from scratch (aside from me looking at how the other plugin calculates gain)
