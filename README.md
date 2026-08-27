@@ -1,6 +1,13 @@
 # CS:S Strafetrainer ((AN ENTIRELY NEW ONE!!))
 This plugin is supposed to be a replacement for the current strafetrainer typically seen in most bhop servers.
 
+# What is different in this fork?
+1. This version supports off styles, rather than just forwards and backwards.
+2. While prestrafing, strafe trainer will guide you towards ideal prestrafing angle.
+3. Compatible with your servers chat styling on shavit timer.
+
+The smx in for this fork was compiled using the most recent version of sourcemod, so for servers running an older version of sourcemod you must compile the plugin yourself.
+
 # How is it different?
 1. All code is built from scratch (aside from me looking at how the other plugin calculates gain)
 2. The strafetrainer submenu (image below) has more customisation 
@@ -10,7 +17,7 @@ This plugin is supposed to be a replacement for the current strafetrainer typica
 5. Different colours of the trainer for better viewablity in all maps (+ rainbow!! :D)
 
 # How do I put it on my server
-1. Put the `.sp` file into the folder mentioned in step 2 (or just use curl `-O https://raw.githubusercontent.com/2x74/strafetrainer/main/scripting/strafetrainer.sp` in the `scripting` folder)
+1. Put the `.sp` file into the folder mentioned in step 2 (or just use curl `-O https://raw.githubusercontent.com/titanrawr/strafetrainer/main/scripting/strafetrainer.sp` in the `scripting` folder)
 1. `cd` into your scripting folder (often at `~/[CSS SERVER FOLDER NAME HERE]/cstrike/addons/sourcemod/scripting`)
 2. Type `./spcomp strafetrainer.sp -o ../plugins/strafetrainer.smx`
 
