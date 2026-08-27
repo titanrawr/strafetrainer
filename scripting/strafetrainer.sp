@@ -47,8 +47,8 @@ enum
     TCOLOR_YELLOW,
     TCOLOR_GREEN,
     TCOLOR_BLUE,
+    TCOLOR_CYAN,
     TCOLOR_MAGENTA,
-    TCOLOR_PURPLE,
     TCOLOR_PINK,
     TCOLOR_BLACK,
     TCOLOR_RAINBOW,
@@ -128,6 +128,9 @@ public void OnPluginStart()
     g_hRedrawTimer = CreateTimer(HUD_REDRAW_INTERVAL, Timer_Redraw, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 
     g_bShavitCoreExists = LibraryExists("shavit");
+    if (g_bShavitCoreExists){
+        Shavit_OnChatConfigLoaded(); //if plugin gets reloaded, it will reinitialize shavit chatstrings
+    }
 
     LogMessage("[ST DEBUG] OnPluginStart fired");
 
@@ -294,8 +297,8 @@ void ShowSettingsMenu(int client)
         case TCOLOR_YELLOW:  strcopy(colourLabel, sizeof(colourLabel), "Yellow");
         case TCOLOR_GREEN:   strcopy(colourLabel, sizeof(colourLabel), "Green");
         case TCOLOR_BLUE:    strcopy(colourLabel, sizeof(colourLabel), "Blue");
+        case TCOLOR_CYAN:    strcopy(colourLabel, sizeof(colourLabel), "Cyan");
         case TCOLOR_MAGENTA: strcopy(colourLabel, sizeof(colourLabel), "Magenta");
-        case TCOLOR_PURPLE:  strcopy(colourLabel, sizeof(colourLabel), "Purple");
         case TCOLOR_PINK:    strcopy(colourLabel, sizeof(colourLabel), "Pink");
         case TCOLOR_BLACK:   strcopy(colourLabel, sizeof(colourLabel), "Black");
         case TCOLOR_RAINBOW: strcopy(colourLabel, sizeof(colourLabel), "Rainbow");
@@ -563,8 +566,8 @@ void GetTrainerColour(int client, float value, int &r, int &g, int &b)
         case TCOLOR_YELLOW:  { r = 255; g = 255; b = 0;   }
         case TCOLOR_GREEN:   { r = 0;   g = 255; b = 0;   }
         case TCOLOR_BLUE:    { r = 0;   g = 0;   b = 255; }
-        case TCOLOR_MAGENTA: { r = 255; g = 0;   b = 255; }
-        case TCOLOR_PURPLE:  { r = 128; g = 0;   b = 255; }
+        case TCOLOR_CYAN:    { r = 0;   g = 255; b = 255; }
+        case TCOLOR_MAGENTA: { r = 128; g = 0;   b = 255; }
         case TCOLOR_PINK:    { r = 255; g = 0;   b = 128; }
         case TCOLOR_BLACK:   { r = 15;  g = 15;  b = 15;  }
         case TCOLOR_RAINBOW:
