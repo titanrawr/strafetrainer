@@ -5,6 +5,9 @@
 #include <sdktools>
 #include <clientprefs>
 
+#undef REQUIRE_PLUGIN //allows optional shavit timer include for chat message formatting
+#include <shavit/core>
+
 #define PL_VERSION "2.1.0"
 
 #define GAUGE_MIN     1.0
@@ -65,6 +68,20 @@ float g_flPrevDisplayValue[MAXPLAYERS + 1];
 bool  g_bHasLastYaw[MAXPLAYERS + 1];
 float g_flLastYaw[MAXPLAYERS + 1];
 
+bool g_bShavitCoreExists = false;
+
+enum struct shavitchatstrings_t
+{
+	char sPrefix[64];
+	char sText[16];
+	char sWarning[16];
+	char sVariable[16];
+	char sVariable2[16];
+	char sStyle[16];
+}
+
+shavitchatstrings_t g_csChatStrings;
+
 Handle g_hCookieEnabled;
 Handle g_hCookieStrict;
 Handle g_hCookieSpeed;
@@ -110,6 +127,8 @@ public void OnPluginStart()
 
     g_hRedrawTimer = CreateTimer(HUD_REDRAW_INTERVAL, Timer_Redraw, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 
+    g_bShavitCoreExists = LibraryExists("shavit");
+
     LogMessage("[ST DEBUG] OnPluginStart fired");
 
     for (int i = 1; i <= MaxClients; i++)
@@ -122,6 +141,14 @@ public void OnPluginStart()
 
         }
     }
+}
+
+public void OnLibraryAdded(const char[] name){
+    g_bShavitCoreExists = LibraryExists("shavit");
+}
+
+public void OnLibraryRemoved(const char[] name){
+    g_bShavitCoreExists = LibraryExists("shavit");
 }
 
 public void OnMapEnd(){
@@ -281,6 +308,16 @@ void ShowSettingsMenu(int client)
     menu.Display(client, MENU_TIME_FOREVER);
 }
 
+public void Shavit_OnChatConfigLoaded()
+{
+	Shavit_GetChatStrings(sMessagePrefix, g_csChatStrings.sPrefix, sizeof(chatstrings_t::sPrefix));
+	Shavit_GetChatStrings(sMessageText, g_csChatStrings.sText, sizeof(chatstrings_t::sText));
+	Shavit_GetChatStrings(sMessageWarning, g_csChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
+	Shavit_GetChatStrings(sMessageVariable, g_csChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageVariable2, g_csChatStrings.sVariable2, sizeof(chatstrings_t::sVariable2));
+	Shavit_GetChatStrings(sMessageStyle, g_csChatStrings.sStyle, sizeof(chatstrings_t::sStyle));
+}
+
 public int MenuHandler_Settings(Menu menu, MenuAction action, int client, int param2)
 {
     if (action == MenuAction_Select)
@@ -293,8 +330,12 @@ public int MenuHandler_Settings(Menu menu, MenuAction action, int client, int pa
                 SaveBoolCookie(client, g_hCookieEnabled, g_bEnabled[client]);
                 if (!g_bEnabled[client])
                     ClearSyncHud(client, g_hHudSync);
-
-                PrintToChat(client, "\x04[Strafe Trainer]\x01 %s", g_bEnabled[client] ? "Enabled" : "Disabled");
+                if (g_bShavitCoreExists){
+                    Shavit_PrintToChat(client, "%sStrafe Trainer%s is now %s%s", g_csChatStrings.sVariable, g_csChatStrings.sText, g_csChatStrings.sVariable2, g_bEnabled[client] ? "Enabled" : "Disabled"); //should Disabled change chatstring to sWarning to fit the style of shavit timer? ex. ShowKeys
+                }
+                else{
+                    PrintToChat(client, "\x04[Strafe Trainer]\x01 %s", g_bEnabled[client] ? "Enabled" : "Disabled");
+                }
             }
             case 1:
             {
